@@ -10,32 +10,12 @@ class FuelStation_in_stock(models.Model):
     fuel_type = fields.Many2one(comodel_name ="fuelstation.fueldata",string="Fuel Type") 
     instock_qut= fields.Float("IN stock Quantity")
     
-    @api.depends('instock_qut')
-    def _update_stock(self):
-        print("Stock Updated")
-        print("self>>>>>",self.name)
-        print("instock qut>>>>>>>>>>",self.instock_qut)
-        print("AVl qut>>>>>>>>>>",self.fuel_type.avl_qut)
-        self.fuel_type.avl_qut += self.instock_qut 
-        
-        
-    # updated_stock= fields.Float(string="Updated Stock",compute=_update_stock,  store=True)
-    
-    # create method in odoo v15
+    # To Update the stock
     @api.model
     def create(self, vals_list):
-        self._update_stock()
-        print("up>>>>>>>>>>",self.fuel_type.avl_qut)
         res=super(FuelStation_in_stock,self).create(vals_list)
+        res.fuel_type.avl_qut += res.instock_qut # to add stock
         return res
-
-    # write method in odoo v15 takse only 2 arg
-    # @api.model
-    # def write(self, cr):
-    #     self._update_stock()
-    #     res = super(FuelStation_in_stock, self).write(cr, uid)
-    #     print("Cr>>>>>>>",cr)
-        # return res
 
 
 
@@ -62,7 +42,6 @@ class FuelStation_out_stock(models.Model):
 
     #  for Total price
     @api.depends('fuel_type','order_qut')
-    # @api.onchange('fuel_type'or 'fuel_price')
     def _cal_total(self):
         for rec in self:
             rec.total_price= rec.order_qut* rec.fuel_price
@@ -70,12 +49,11 @@ class FuelStation_out_stock(models.Model):
 
     total_price = fields.Float(string="Total Cost",compute=_cal_total,store=True)
 
-
     # To Update stock
     @api.depends('order_qut')
     def _update_stock(self):
         for rec in self:
-            if rec.order_qut < rec.fuel_type.avl_qut:
+            if rec.order_qut < rec.fuel_type.avl_qut: # to check out off stock condition
                 rec.fuel_type.avl_qut -= rec.order_qut 
             else:
                 raise ValidationError("Fuel Out off Stock")
